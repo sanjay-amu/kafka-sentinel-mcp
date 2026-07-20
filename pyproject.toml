@@ -1,0 +1,33 @@
+[project]
+name = "kafka-sentinel-mcp"
+version = "0.1.0"
+description = "Read-only Kafka observability MCP server: cluster health, consumer lag, and replay-readiness for AI agents that must never touch production."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Sanjay Mishra", email = "sharpsanjay@gmail.com" }]
+keywords = ["kafka", "mcp", "model-context-protocol", "observability", "sre", "llm-agents"]
+dependencies = [
+    "mcp>=1.2.0",
+    "confluent-kafka>=2.5.0",
+]
+
+[project.scripts]
+kafka-sentinel-mcp = "kafka_sentinel_mcp.server:main"
+
+[project.urls]
+Homepage = "https://github.com/sanjay-amu/kafka-sentinel-mcp"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/kafka_sentinel_mcp"]

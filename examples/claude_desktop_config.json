@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "kafka-sentinel": {
+      "command": "kafka-sentinel-mcp",
+      "env": {
+        "KAFKA_BOOTSTRAP": "localhost:9092"
+      }
+    }
+  }
+}
