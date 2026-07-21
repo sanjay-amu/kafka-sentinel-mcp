@@ -10,6 +10,7 @@ keywords = ["kafka", "mcp", "model-context-protocol", "observability", "sre", "l
 dependencies = [
     "mcp>=1.2.0",
     "confluent-kafka>=2.5.0",
+    "pip>=26.1.2",
 ]
 
 [project.scripts]

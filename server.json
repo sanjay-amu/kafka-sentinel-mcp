@@ -1,0 +1,65 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.sanjay-amu/kafka-sentinel-mcp",
+  "title": "Kafka Sentinel",
+  "description": "Read-only Kafka observability MCP server: cluster health, consumer lag, and replay-readiness for AI agents that must never touch production.",
+  "repository": {
+    "url": "https://github.com/sanjay-amu/kafka-sentinel-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "kafka-sentinel-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "KAFKA_BOOTSTRAP",
+          "description": "Kafka bootstrap servers, e.g. broker1:9092,broker2:9092",
+          "isRequired": true,
+          "isSecret": false,
+          "format": "string"
+        },
+        {
+          "name": "KAFKA_SECURITY_PROTOCOL",
+          "description": "librdkafka security.protocol, e.g. SASL_SSL",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        },
+        {
+          "name": "KAFKA_SASL_MECHANISM",
+          "description": "librdkafka sasl.mechanism, e.g. PLAIN or SCRAM-SHA-512",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        },
+        {
+          "name": "KAFKA_SASL_USERNAME",
+          "description": "SASL username",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        },
+        {
+          "name": "KAFKA_SASL_PASSWORD",
+          "description": "SASL password",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "KAFKA_SSL_CA_LOCATION",
+          "description": "Path to CA certificate for SSL",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

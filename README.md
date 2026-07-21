@@ -61,3 +61,6 @@ Early. See [ROADMAP.md](ROADMAP.md). Issues and PRs welcome — especially war s
 ## License
 
 MIT
+
+<!-- mcp-name: io.github.sanjay-amu/kafka-sentinel-mcp -->
+
