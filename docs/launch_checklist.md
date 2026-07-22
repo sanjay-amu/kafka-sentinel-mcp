@@ -9,7 +9,13 @@ staged so the whole thing can go out in one coordinated window.
 - [ ] `docs/demo.gif` recorded and embedded in README (see
       [demo_recording_script.md](demo_recording_script.md))
 - [x] Published to PyPI (`pip install kafka-sentinel-mcp`)
-- [x] Published to the MCP Registry (`io.github.sanjay-amu/kafka-sentinel-mcp`)
+- [ ] Published to the MCP Registry (`io.github.sanjay-amu/kafka-sentinel-mcp`) —
+      **not actually live yet as of 2026-07-22** (verified via
+      `curl -s "https://registry.modelcontextprotocol.io/v0/servers?search=kafka"`,
+      zero matches). server.json is schema-valid but `mcp-publisher publish`
+      needs to be (re-)run successfully after the 0.1.1 PyPI release goes out,
+      since the registry validates package ownership against the live PyPI
+      README content (`mcp-name:` marker), which only just got added.
 - [ ] Star the repo yourself first, watch the GitHub Actions badge is green,
       double check the README renders correctly on github.com (GIF, links)
 
