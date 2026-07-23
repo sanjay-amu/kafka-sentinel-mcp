@@ -7,12 +7,12 @@
     "url": "https://github.com/sanjay-amu/kafka-sentinel-mcp",
     "source": "github"
   },
-  "version": "0.1.1",
+  "version": "0.1.2",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "kafka-sentinel-mcp",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "transport": {
         "type": "stdio"
       },

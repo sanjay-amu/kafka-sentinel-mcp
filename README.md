@@ -16,6 +16,8 @@ When a consumer group stalls at 3 a.m., the questions are always the same: Is it
 
 | Tool | What it returns |
 |---|---|
+| `list_topics` | All non-internal topics with partition count and replication factor — start here if you don't know a topic name |
+| `list_consumer_groups` | All consumer group IDs with state — start here if you don't know a group name |
 | `cluster_health` | Broker count, controller status, under-replicated / offline partition counts |
 | `consumer_lag` | Per-group, per-topic, per-partition lag with committed vs end offsets |
 | `topic_audit` | Replication factor, min.insync.replicas, retention, and flags configs that violate durability best practice |

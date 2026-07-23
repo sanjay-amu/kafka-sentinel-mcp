@@ -1,6 +1,6 @@
 [project]
 name = "kafka-sentinel-mcp"
-version = "0.1.1"
+version = "0.1.2"
 description = "Read-only Kafka observability MCP server: cluster health, consumer lag, and replay-readiness for AI agents that must never touch production."
 readme = "README.md"
 requires-python = ">=3.10"

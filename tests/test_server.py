@@ -6,6 +6,8 @@ All Kafka interactions are mocked — tests verify tool logic, not librdkafka.
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from kafka_sentinel_mcp import server
 
 
@@ -183,6 +185,74 @@ def test_replay_readiness_safe_when_committed_within_retention():
         out = server.replay_readiness("g1", "t")
     assert out["replay_safe"] is True
     assert out["partitions_at_risk"] == []
+
+
+# ---------- topic-not-found guard ----------
+
+def test_topic_audit_raises_clear_error_for_unknown_topic():
+    md = fake_metadata({})  # no topics at all
+    admin = MagicMock()
+    admin.list_topics.return_value = md
+    with patch.object(server, "_admin", return_value=admin):
+        with pytest.raises(server.TopicNotFoundError, match="list_topics"):
+            server.topic_audit("does-not-exist")
+
+
+def test_consumer_lag_raises_clear_error_when_topic_metadata_has_error():
+    # confluent_kafka represents "doesn't exist" as an entry present but
+    # with .error set, not always a missing dict key — cover both shapes.
+    md = fake_metadata({"ghost": {}})
+    md.topics["ghost"].error = SimpleNamespace(code=lambda: 3)  # UNKNOWN_TOPIC
+    admin = MagicMock()
+    admin.list_topics.return_value = md
+    with patch.object(server, "_admin", return_value=admin):
+        with pytest.raises(server.TopicNotFoundError):
+            server.consumer_lag("g1", "ghost")
+
+
+def test_replay_readiness_raises_clear_error_for_unknown_topic():
+    md = fake_metadata({})
+    admin = MagicMock()
+    admin.list_topics.return_value = md
+    with patch.object(server, "_admin", return_value=admin):
+        with pytest.raises(server.TopicNotFoundError):
+            server.replay_readiness("g1", "does-not-exist")
+
+
+# ---------- list_topics / list_consumer_groups ----------
+
+def test_list_topics_excludes_internal_and_reports_rf():
+    md = fake_metadata({
+        "orders": {0: fake_partition(replicas=(1, 2, 3)), 1: fake_partition(replicas=(1, 2, 3))},
+        "__consumer_offsets": {0: fake_partition()},
+    })
+    admin = MagicMock()
+    admin.list_topics.return_value = md
+    with patch.object(server, "_admin", return_value=admin):
+        out = server.list_topics()
+    names = [t["topic"] for t in out]
+    assert "orders" in names
+    assert "__consumer_offsets" not in names
+    orders = next(t for t in out if t["topic"] == "orders")
+    assert orders["partitions"] == 2
+    assert orders["replication_factor"] == 3
+
+
+def test_list_consumer_groups_returns_sorted_ids_and_state():
+    group_a = SimpleNamespace(group_id="b-group", state=SimpleNamespace(name="STABLE"),
+                               is_simple_consumer_group=False)
+    group_b = SimpleNamespace(group_id="a-group", state=SimpleNamespace(name="EMPTY"),
+                               is_simple_consumer_group=True)
+    result = SimpleNamespace(valid=[group_a, group_b])
+    future = MagicMock()
+    future.result.return_value = result
+    admin = MagicMock()
+    admin.list_consumer_groups.return_value = future
+    with patch.object(server, "_admin", return_value=admin):
+        out = server.list_consumer_groups()
+    assert [g["group"] for g in out] == ["a-group", "b-group"]
+    assert out[0]["state"] == "EMPTY"
+    assert out[0]["is_simple_consumer_group"] is True
 
 
 # ---------- read-only invariants ----------

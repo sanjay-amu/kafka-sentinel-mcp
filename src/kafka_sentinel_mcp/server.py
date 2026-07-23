@@ -26,6 +26,15 @@ MIN_ISR = 2
 _REQUEST_TIMEOUT = float(os.environ.get("KAFKA_SENTINEL_TIMEOUT", "10"))
 
 
+class TopicNotFoundError(Exception):
+    """Raised when a requested topic doesn't exist on the cluster.
+
+    Every tool that takes a `topic` argument raises this instead of letting
+    a raw KeyError leak out of a dict lookup — the message tells the caller
+    (human or agent) to run list_topics() rather than guess.
+    """
+
+
 def _base_conf() -> dict:
     conf = {"bootstrap.servers": os.environ.get("KAFKA_BOOTSTRAP", "localhost:9092")}
     # SASL/SSL passthrough — values are read from env and never logged.
@@ -58,6 +67,19 @@ def _audit_log(tool: str, **params) -> None:
     """Log every tool invocation (no secrets ever pass through params)."""
     logger.info("tool=%s params=%s at=%s", tool, params,
                 datetime.now(timezone.utc).isoformat())
+
+
+def _topic_metadata(admin: AdminClient, topic: str):
+    """Fetch metadata for one topic, raising TopicNotFoundError with a
+    helpful message instead of a raw KeyError if it doesn't exist."""
+    md = admin.list_topics(topic=topic, timeout=_REQUEST_TIMEOUT)
+    entry = md.topics.get(topic)
+    if entry is None or getattr(entry, "error", None) is not None:
+        raise TopicNotFoundError(
+            f"Topic '{topic}' not found on this cluster. "
+            "Call list_topics() to see what's available."
+        )
+    return entry
 
 
 @dataclass
@@ -98,8 +120,8 @@ def consumer_lag(group: str, topic: str) -> list[dict]:
     committed offset vs log-end offset. committed = -1 means no offset stored."""
     _audit_log("consumer_lag", group=group, topic=topic)
     admin = _admin()
-    md = admin.list_topics(topic=topic, timeout=_REQUEST_TIMEOUT)
-    partitions = [TopicPartition(topic, p) for p in md.topics[topic].partitions]
+    entry = _topic_metadata(admin, topic)
+    partitions = [TopicPartition(topic, p) for p in entry.partitions]
 
     c = _consumer(group)
     try:
@@ -126,8 +148,7 @@ def topic_audit(topic: str) -> dict:
     Flags settings that violate mission-critical best practice."""
     _audit_log("topic_audit", topic=topic)
     admin = _admin()
-    md = admin.list_topics(topic=topic, timeout=_REQUEST_TIMEOUT)
-    t = md.topics[topic]
+    t = _topic_metadata(admin, topic)
     rf = len(next(iter(t.partitions.values())).replicas) if t.partitions else 0
 
     cfg = admin.describe_configs([ConfigResource(ConfigResource.Type.TOPIC, topic)])
@@ -160,8 +181,7 @@ def topic_audit(topic: str) -> dict:
 def partition_state(topic: str) -> dict:
     """Leader/ISR state per partition, plus leader skew across brokers."""
     _audit_log("partition_state", topic=topic)
-    md = _admin().list_topics(topic=topic, timeout=_REQUEST_TIMEOUT)
-    t = md.topics[topic]
+    t = _topic_metadata(_admin(), topic)
     leaders: dict[int, int] = {}
     parts = []
     for pid, p in sorted(t.partitions.items()):
@@ -188,8 +208,8 @@ def replay_readiness(group: str, topic: str) -> dict:
     or has retention already deleted part of the gap?"""
     _audit_log("replay_readiness", group=group, topic=topic)
     admin = _admin()
-    md = admin.list_topics(topic=topic, timeout=_REQUEST_TIMEOUT)
-    partitions = [TopicPartition(topic, p) for p in md.topics[topic].partitions]
+    entry = _topic_metadata(admin, topic)
+    partitions = [TopicPartition(topic, p) for p in entry.partitions]
 
     c = _consumer(group)
     try:
@@ -212,6 +232,43 @@ def replay_readiness(group: str, topic: str) -> dict:
         }
     finally:
         c.close()
+
+
+@mcp.tool()
+def list_topics() -> list[dict]:
+    """List all non-internal topics with partition count and replication
+    factor. Use this first if you don't already know a topic name — every
+    other tool needs one."""
+    _audit_log("list_topics")
+    md = _admin().list_topics(timeout=_REQUEST_TIMEOUT)
+    out = []
+    for name, t in sorted(md.topics.items()):
+        if name.startswith("__"):
+            continue  # internal topics (__consumer_offsets, etc.) — noise
+        rf = len(next(iter(t.partitions.values())).replicas) if t.partitions else 0
+        out.append({
+            "topic": name,
+            "partitions": len(t.partitions),
+            "replication_factor": rf,
+        })
+    return out
+
+
+@mcp.tool()
+def list_consumer_groups() -> list[dict]:
+    """List all consumer group IDs on the cluster with their state.
+    Use this first if you don't already know a group name."""
+    _audit_log("list_consumer_groups")
+    future = _admin().list_consumer_groups(request_timeout=_REQUEST_TIMEOUT)
+    result = future.result(timeout=_REQUEST_TIMEOUT)
+    return [
+        {
+            "group": g.group_id,
+            "state": getattr(g.state, "name", str(g.state)),
+            "is_simple_consumer_group": g.is_simple_consumer_group,
+        }
+        for g in sorted(result.valid, key=lambda g: g.group_id)
+    ]
 
 
 @mcp.tool()

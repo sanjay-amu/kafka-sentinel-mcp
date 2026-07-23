@@ -1,10 +1,16 @@
 # Roadmap
 
-## v0.1 (now) — Observe
+## v0.1.2 (shipped) — Discovery + graceful errors
+- [x] `list_topics` / `list_consumer_groups` — every other tool required
+      already knowing a name; this closed that gap
+- [x] Topic-not-found now raises a clear `TopicNotFoundError` pointing at
+      `list_topics()` instead of a raw `KeyError`
+
+## v0.1 (shipped) — Observe
 - [x] cluster_health, consumer_lag, topic_audit, replay_readiness, incident_snapshot
 - [ ] Tests against a dockerized Kafka (testcontainers)
-- [ ] CI (GitHub Actions: lint, type-check, test matrix)
-- [ ] PyPI release
+- [x] CI (GitHub Actions: lint, type-check, test matrix)
+- [x] PyPI release
 
 ## v0.2 — Correlate
 - [ ] Rebalance-storm detector (group state history over a sampling window)
